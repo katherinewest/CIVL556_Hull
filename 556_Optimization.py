@@ -8,12 +8,6 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-def optimization_function(length, thickness):
-    # attempting to make the shortest submarine possible that can contain all the boxes
-    optimum = volume_revolution(length, thickness) + length
-    return optimum
-
-
 def intake_data(self):
 
     # To Do: Display model for context for bounding data intake
@@ -46,54 +40,71 @@ def intake_data(self):
         print("(" + str(bounding_x[count]) + " " + str(bounding_y[count]))
         count = count + 1
 
-    max_length = input("Please enter the maximum submarine length (in meters) ")
+    max_l = input("Please enter the maximum submarine length (in meters) ")
 
-    max_width = input("Please enter the maximum width (in meters) ")
+    max_w = input("Please enter the maximum width (in meters) ")
 
-    return bounding_x, bounding_y, max_length, max_width, bounding_number
+    return bounding_x, bounding_y, max_l, max_w, bounding_number
 
 
-def height_constraint(constraints_x, constraints_y, bounding_number, thickness):
+def height_constraint(x0, args):
     # for every combo of x and y limits, check whether the constraint points are contained within the hull form
+    # front_gap modifies x distance between the airfoil front and the x-component of the first bounding pt
+    # to be fixed
+    cons_x = args[0]
+    cons_y = args[1]
     index = 0
     while index > bounding_number:
-        t = airfoil_at_point(thickness, constraints_x[index])
-        if t < constraints_y[index]:
+        t = airfoil_at_point(t, cons_x[index])
+        if t < cons_y[index]:
             return 0
         index = index + 1
     return 1
 
 
-def length_constraint(max_length, length):
-    if max_length >= length > 0:
+def length_constraint(x0, args):
+    max_l = args[2]
+    length = x0[0]
+    if max_l >= length > 0:
         return 1
     else:
         return 0
 
 
-def airfoil_at_point(t, x):
+def airfoil_at_point(t, x, length):
+    # t is the max thickness, x is the position from 0-1.0 along the airfoil
     y_t = 5*t*(0.2969*x**(1/2) - 0.126*x - 0.3516*x**2 + 0.2843*x**3 - 0.1015*x**4)
+    # convert based on scale of length
+    scale = length/1.0
+
     return float(y_t)
 
 
-def reporting(thickness, length):
+def volume_revolution(t, len):
+    # write a function to populate a data table with ~200 points along the airfoil
+    count = 0
+    data_points = []
+    scale = len/1.0
+    while count < len:
+        data_points = data_points.insert(count, (scale*airfoil_at_point(t, count))**2)
+        count = count + len/200
+    integral = np.trapz(data_points)
+    volume = integral*np.pi
+    return volume
+
+
+def optimization_function(len, t):
+    # attempting to make the shortest submarine possible that can contain all the boxes
+    # implement coefficients in the future
+    optimum = volume_revolution(len, t) + len
+    return optimum
+
+
+def reporting(t, len):
     # make it print a pretty graph
     # also interested in calling the volume_revolution function
 
     return
-
-
-def volume_revolution(thickness, length):
-    # write a function to populate a data table with ~100 points along the airfoil
-    count = 0
-    data_points = []
-    scale = length/1.0
-    while count < length:
-        data_points = data_points.insert(count, scale*airfoil_at_point(thickness, count))
-        count = count + length/100
-    volume = np.trapz(data_points)
-
-    return volume
 
 
 def is_not_used(self):
@@ -112,13 +123,20 @@ length = max(constraints_x)
 
 # thickness at max point
 thickness = max(constraints_y)
-x0 = np.array(length, thickness)
+
+# front_space is the difference between the start of the airfoil and the first x component of bounding
+front_space = 0.1
+
+x0 = np.array([length, thickness, front_space])
+
+# args passes extra arguments to be used in functions
+args = np.array([constraints_x, constraints_y, max_length, max_width, bounding_number])
 
 # bounding total solution area
-bound_horizontal = max_length
-bound_vertical = max_width
+# bound_horizontal = max_length
+# bound_vertical = max_width
 
-bnds = np.array(bound_horizontal, bound_vertical)
+# bnds = np.array(bound_horizontal, bound_vertical)
 
 # CONSTRAINTS
 # con1 ensures bounding points are contained within the hull form
@@ -130,4 +148,4 @@ con2 = {'type': 'ineq', 'fun': length_constraint}
 # array of constraints to be passed to the optimization function
 cons = np.typeDict(con1, con2)
 
-solution = minimize(optimization_function(length, thickness), x0, method='SLSQP', bounds=bnds, constraints=cons)
+solution = minimize(optimization_function, x0, args, method='SLSQP', constraints=cons)
