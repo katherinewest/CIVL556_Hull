@@ -22,7 +22,7 @@ Solution Reporting
 > the solution is displayed, TODO: along with a plot of the bounding points and the final hullform
 > TODO: sensitivity reporting on the optimal solution (how close are we to cutting off feets)
 
-2D System mapping
+2D System mapping - outdated
 1. intake units?
 2. intake bounding dimensions and locations along the submarine body
 3. intake other bounding considerations (eg. length)
