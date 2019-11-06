@@ -6,6 +6,7 @@
 
 import numpy as np
 from scipy.optimize import minimize
+from scipy.optimize import Bounds
 
 
 def intake_data():
@@ -97,7 +98,7 @@ def volume_revolution(x):
         data_points = np.append(data_points, (airfoil_at_point(x[1], hold, x[0])))
         x_components = np.append(x_components, hold)
         hold = hold + test_len/100
-    # take the trapezoidal integral of ~200 data points evenly spaced along the real length of the submarine
+    # take the trapezoidal integral of ~100 data points evenly spaced along the real length of the submarine
     print(data_points)
     integral = np.trapz(data_points, dx=test_len/100, axis=0)
     print(integral)
@@ -107,12 +108,21 @@ def volume_revolution(x):
     return volume
 
 
-def optimization_function(x):
+def simple_optimization_function(x):
     # attempting to make the shortest submarine possible that can contain all the boxes
     # implement coefficients in the future
     print("Testing optimization function")
     print(x)
     optimum = x[0]
+    return optimum
+
+
+def volume_optimization_function(x):
+    # attempting to make the shortest submarine possible that can contain all the boxes
+    # implement coefficients in the future
+    print("Testing optimization function")
+    print(x)
+    optimum = volume_revolution(x) + x[0]
     return optimum
 
 
@@ -130,6 +140,7 @@ print("Welcome to the CIVIL 556 Hull form optimization modeller! \n "
 # MODEL PARAMETERS,
 constraints_x, constraints_y, max_length, max_width, bounding_number = intake_data()
 
+""" SLSQP OPTIMIZATION IMPLEMENTATION 
 # INITIALIZING SOLUTION VARIABLES
 # initialized length
 x0_length = 2
@@ -162,7 +173,43 @@ con2 = {'type': 'ineq', 'fun': length_constraint}
 # array of constraints to be passed to the optimization function
 cons = con1, con2
 
-solution = minimize(optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con1)
+solution = minimize(simple_optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con1)
+"""
+
+# BFGS Implementation
+# INITIALIZING SOLUTION VARIABLES
+# initialized length
+x0_length = 2
+
+# thickness at max point
+x0_thickness = 0.2
+
+# front_space is the difference between the start of the airfoil and the first x component of bounding
+x0_front_space = 0.1
+
+# initial solution array
+x0 = np.array([x0_length, x0_thickness, x0_front_space])
+
+# BOUNDING
+# bounding total solution area
+bound_horizontal = (1.2, max_length)
+bound_vertical = (0.1, max_width)
+bound_front = (0.01, 1.)
+
+# bounding array for each variable
+bounds = (bound_horizontal, bound_vertical, bound_front)
+
+# CONSTRAINTS
+# con1 ensures bounding points are contained within the hull form
+con1 = {'type': 'ineq', 'fun': height_constraint}
+
+# con2 ensures the maximum length of the submarine is shorter than the maximum length
+con2 = {'type': 'ineq', 'fun': length_constraint}
+
+# array of constraints to be passed to the optimization function
+cons = con1, con2
+
+solution = minimize(simple_optimization_function, x0, method='L-BFGS-B', bounds=((1.2, max_length), (0.1, max_width), (0.01, 1)), options={'disp': True})
 
 x = solution.x
 print("Solution")
