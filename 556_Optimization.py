@@ -140,7 +140,7 @@ print("Welcome to the CIVIL 556 Hull form optimization modeller! \n "
 # MODEL PARAMETERS,
 constraints_x, constraints_y, max_length, max_width, bounding_number = intake_data()
 
-""" SLSQP OPTIMIZATION IMPLEMENTATION 
+# SLSQP OPTIMIZATION IMPLEMENTATION
 # INITIALIZING SOLUTION VARIABLES
 # initialized length
 x0_length = 2
@@ -173,9 +173,9 @@ con2 = {'type': 'ineq', 'fun': length_constraint}
 # array of constraints to be passed to the optimization function
 cons = con1, con2
 
-solution = minimize(simple_optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con1)
-"""
+solution = minimize(simple_optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con2)
 
+"""
 # BFGS Implementation
 # INITIALIZING SOLUTION VARIABLES
 # initialized length
@@ -209,7 +209,9 @@ con2 = {'type': 'ineq', 'fun': length_constraint}
 # array of constraints to be passed to the optimization function
 cons = con1, con2
 
-solution = minimize(simple_optimization_function, x0, method='L-BFGS-B', bounds=((1.2, max_length), (0.1, max_width), (0.01, 1)), options={'disp': True})
+solution = minimize(simple_optimization_function, x0, method='L-BFGS-B', bounds=((1.2, max_length), (0.1, max_width), 
+(0.01, 1)), options={'disp': True})
+"""
 
 x = solution.x
 print("Solution")
