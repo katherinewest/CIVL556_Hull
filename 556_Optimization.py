@@ -6,6 +6,7 @@
 
 import numpy as np
 from scipy.optimize import minimize
+from aeropy.xfoil_module import find_coefficients
 
 
 def intake_data():
@@ -71,6 +72,14 @@ def length_constraint(x):
         return 1
     else:
         return 0
+
+
+def airfoil_coefficients(x):
+    naca_number = int(x[2]/x[1])
+    naca_airfoil = 'naca' + '00' + naca_number
+
+    airfoil_coeff = find_coefficients(airfoil=naca_airfoil, alpha=0)
+    return airfoil_coeff
 
 
 def airfoil_at_point(t, point, length):
