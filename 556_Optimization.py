@@ -5,6 +5,7 @@
 # Updates written 2019-11-02
 
 import numpy as np
+
 from scipy.optimize import minimize
 from aeropy.xfoil_module import find_coefficients
 
@@ -57,7 +58,7 @@ def height_constraint(x):
     front_gap = x[2]
     index = 0
     t = x[1]
-    while index < bounding_number:
+    while index < bounds_number:
         height = airfoil_at_point(t, (cons_x[index] + front_gap), length_testing)
         if height < cons_y[index]:
             return -1
@@ -75,8 +76,9 @@ def length_constraint(x):
 
 
 def airfoil_coefficients(x):
-    naca_number = int(x[2]/x[1])
-    naca_airfoil = 'naca' + '00' + naca_number
+    naca_number = int((x[2]/x[1])*100)
+    naca_airfoil = 'naca' + '00' + str(naca_number)
+    print(naca_airfoil)
 
     airfoil_coeff = find_coefficients(airfoil=naca_airfoil, alpha=0)
     return airfoil_coeff
@@ -137,7 +139,7 @@ print("Welcome to the CIVIL 556 Hull form optimization modeller! \n "
       "Please follow the instructions for data entry, and enjoy!")
 
 # MODEL PARAMETERS,
-constraints_x, constraints_y, max_length, max_width, bounding_number = intake_data()
+constraints_x, constraints_y, max_length, max_width, bounds_number = intake_data()
 
 # INITIALIZING SOLUTION VARIABLES
 # initialized length
@@ -174,6 +176,10 @@ cons = con1, con2
 solution = minimize(optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con1)
 
 x = solution.x
+c_d = airfoil_coefficients(x)
+
+print(c_d)
+
 print("Solution")
 print(solution)
 print(x[0])
