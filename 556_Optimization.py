@@ -215,7 +215,7 @@ con = {'type': 'ineq', 'fun': constraint_function}
 # cons = con1, con2, con3
 
 solution = minimize(optimization_function, x0, method='COBYLA', constraints=con,
-                    options={'maxiter':1000})
+                    options={'rhobeg':0.1, 'maxiter':1000})
 
 x = solution.x
 c_d = airfoil_coefficients(x)
