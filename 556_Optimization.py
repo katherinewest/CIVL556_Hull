@@ -60,6 +60,7 @@ def height_constraint(x):
     t = x[1]
     while index < bounds_number:
         height = airfoil_at_point(t, (cons_x[index] + front_gap), length_testing)
+        print(height, cons_y[index])
         if height < cons_y[index]:
             return -1
         index = index + 1
@@ -72,16 +73,29 @@ def length_constraint(x):
     if max_l >= length:
         return 1
     else:
-        return 0
+        return -1
+
+
+def width_constraint(x):
+    max_w = float(max_width)
+    width = float(x[1])
+    if max_w >= width:
+        return 1
+    else:
+        return -1
 
 
 def airfoil_coefficients(x):
-    naca_number = int((x[2]/x[1])*100)
+    naca_number = int((x[1]/x[0])*100)
+    if naca_number/10 < 1:
+        naca_number = str(naca_number).zfill(2)
     naca_airfoil = 'naca' + '00' + str(naca_number)
     print(naca_airfoil)
 
-    airfoil_coeff = find_coefficients(airfoil=naca_airfoil, alpha=0)
-    return airfoil_coeff
+    airfoil_coeff = find_coefficients(airfoil=naca_airfoil, alpha=0.1, Reynolds=500000, NACA=True, iteration=30.)
+    c_d_x = airfoil_coeff['CD']
+    print("the value of c_d is " + str(c_d_x))
+    return c_d_x
 
 
 def airfoil_at_point(t, point, length):
@@ -105,7 +119,7 @@ def volume_revolution(x):
     data_points = np.zeros(shape=(1, 1))
     x_components = np.zeros(shape=(1, 1))
     while hold <= test_len:
-        data_points = np.append(data_points, (airfoil_at_point(x[1], hold, x[0])))
+        data_points = np.append(data_points, (airfoil_at_point(x[1], hold, x[0])**2))
         x_components = np.append(x_components, hold)
         hold = hold + test_len/100
     # take the trapezoidal integral of ~200 data points evenly spaced along the real length of the submarine
@@ -114,7 +128,7 @@ def volume_revolution(x):
     print(integral)
     # calculate the rotational volume from the integral
     volume = integral*np.pi
-    print(volume)
+    print("the volume of the hull is" + str(volume))
     return volume
 
 
@@ -123,7 +137,7 @@ def optimization_function(x):
     # implement coefficients in the future
     print("Testing optimization function")
     print(x)
-    optimum = x[0]
+    optimum = airfoil_coefficients(x) + volume_revolution(x)
     return optimum
 
 
@@ -168,12 +182,16 @@ bnds = np.array([bound_horizontal, bound_vertical, bound_front])
 con1 = {'type': 'ineq', 'fun': height_constraint}
 
 # con2 ensures the maximum length of the submarine is shorter than the maximum length
-con2 = {'type': 'ineq', 'fun': length_constraint}
+# con2 = {'type': 'ineq', 'fun': length_constraint}
+
+# con3 ensures the maximum width of the submarine is smaller than the maximum width given
+# con3 = {'type': 'ineq', 'fun': width_constraint}
 
 # array of constraints to be passed to the optimization function
-cons = con1, con2
+# cons = con1, con2, con3
 
-solution = minimize(optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con1)
+solution = minimize(optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con1,
+                    options={'maxiter':1000, 'eps':0.1, 'ftol':0.00000001})
 
 x = solution.x
 c_d = airfoil_coefficients(x)
