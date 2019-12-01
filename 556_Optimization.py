@@ -2,7 +2,7 @@
 # Optimization Modelling and hull form optimization program
 # Written by Katherine Westerlund
 # Written 2019-09-25
-# Updates written 2019-11-02
+# Updates written 2019-12-01
 
 import numpy as np
 
@@ -12,9 +12,7 @@ from aeropy.xfoil_module import find_coefficients
 
 def intake_data():
 
-    # To Do: Display model for context for bounding data intake
     # intake number of bounding boxes
-    # self.is_not_used()
 
     bounding_number = input('How many bounding boxes do you need? ')
     bounding_number = float(bounding_number)
@@ -49,7 +47,7 @@ def intake_data():
     return bounding_x, bounding_y, max_l, max_w, bounding_number
 
 
-def height_constraint(x):
+def constraint_function(x):
     # for every combo of x and y limits, check whether the constraint points are contained within the hull form
     # front_gap modifies x distance between the airfoil front and the x-component of the first bounding pt
     cons_x = constraints_x
@@ -58,19 +56,37 @@ def height_constraint(x):
     front_gap = x[2]
     index = 0
     t = x[1]
+    if (length_testing or front_gap or t) < 0:
+        return -1
     while index < bounds_number:
         height = airfoil_at_point(t, (cons_x[index] + front_gap), length_testing)
         print(height, cons_y[index])
         if height < cons_y[index]:
-            return -1
+            return height - cons_y[index]
         index = index + 1
+    # length constraint
+    max_l = float(max_length)
+    length = float(x[0])
+    if max_l < length:
+        return max_l - length
+    if length < 1:
+        return length - 1
+    # width constraint
+    max_w = float(max_width)
+    width = float(x[1])
+    if max_w < width:
+        return max_w - width
+    if width < 0:
+        return width
     return 1
 
 
+"""
+# Previous constraints, integrated into the one constraint function
 def length_constraint(x):
     max_l = float(max_length)
     length = float(x[0])
-    if max_l >= length:
+    if max_l >= length > 1:
         return 1
     else:
         return -1
@@ -79,21 +95,27 @@ def length_constraint(x):
 def width_constraint(x):
     max_w = float(max_width)
     width = float(x[1])
-    if max_w >= width:
+    if max_w >= width > 0:
         return 1
     else:
         return -1
+"""
 
 
 def airfoil_coefficients(x):
     naca_number = int((x[1]/x[0])*100)
+    if x[1] <= 0:
+        return 100
+    if naca_number <= 4:
+        return 100
     if naca_number/10 < 1:
         naca_number = str(naca_number).zfill(2)
     naca_airfoil = 'naca' + '00' + str(naca_number)
     print(naca_airfoil)
 
     airfoil_coeff = find_coefficients(airfoil=naca_airfoil, alpha=0.1, Reynolds=500000, NACA=True, iteration=30.)
-    c_d_x = airfoil_coeff['CD']
+    # scale c_D based on length of hull
+    c_d_x = x[0]*airfoil_coeff['CD']
     print("the value of c_d is " + str(c_d_x))
     return c_d_x
 
@@ -111,6 +133,24 @@ def airfoil_at_point(t, point, length):
     y_t = y_t*scale
     return float(y_t)
 
+
+def optimization_function(x):
+    # attempting to make the shortest submarine possible that can contain all the boxes
+    # implement coefficients in the future
+    print("Testing optimization function")
+    print(x)
+    optimum = airfoil_coefficients(x) + x[0] + x[1]
+    return optimum
+
+
+"""
+def reporting(x):
+    # make it print a pretty graph
+    # also interested in calling the volume_revolution function
+    # display 2D curve of optimum hull form with bounding points placed on it
+    print(x)
+    return
+    
 
 def volume_revolution(x):
     # write a function to populate a data table with ~200 points along the airfoil
@@ -130,24 +170,7 @@ def volume_revolution(x):
     volume = integral*np.pi
     print("the volume of the hull is" + str(volume))
     return volume
-
-
-def optimization_function(x):
-    # attempting to make the shortest submarine possible that can contain all the boxes
-    # implement coefficients in the future
-    print("Testing optimization function")
-    print(x)
-    optimum = airfoil_coefficients(x) + volume_revolution(x)
-    return optimum
-
-
-def reporting(x):
-    # make it print a pretty graph
-    # also interested in calling the volume_revolution function
-    # display 2D curve of optimum hull form with bounding points placed on it
-    print(x)
-    return
-
+"""
 
 print("Welcome to the CIVIL 556 Hull form optimization modeller! \n "
       "Please follow the instructions for data entry, and enjoy!")
@@ -177,21 +200,22 @@ bound_front = (0.01, 1)
 # bounding array for each variable
 bnds = np.array([bound_horizontal, bound_vertical, bound_front])
 
-# CONSTRAINTS
-# con1 ensures bounding points are contained within the hull form
-con1 = {'type': 'ineq', 'fun': height_constraint}
+# MODEL CONSTRAINTS
+# con ensures bounding points are contained within the hull form, along with the max height/width constraints
+# returns 1 if satisfied, -1 if not satisfied
+con = {'type': 'ineq', 'fun': constraint_function}
 
 # con2 ensures the maximum length of the submarine is shorter than the maximum length
 # con2 = {'type': 'ineq', 'fun': length_constraint}
 
 # con3 ensures the maximum width of the submarine is smaller than the maximum width given
-# con3 = {'type': 'ineq', 'fun': width_constraint}
+# con1 = {'type': 'ineq', 'fun': width_constraint}
 
 # array of constraints to be passed to the optimization function
 # cons = con1, con2, con3
 
-solution = minimize(optimization_function, x0, method='SLSQP', bounds=bnds, constraints=con1,
-                    options={'maxiter':1000, 'eps':0.1, 'ftol':0.00000001})
+solution = minimize(optimization_function, x0, method='COBYLA', constraints=con,
+                    options={'maxiter':1000})
 
 x = solution.x
 c_d = airfoil_coefficients(x)
