@@ -47,39 +47,48 @@ def intake_data():
     return bounding_x, bounding_y, max_l, max_w, bounding_number
 
 
+def test_function():
+    return [0], [0.1], 5, 3, 1
+
+
 def constraint_function(x):
     # for every combo of x and y limits, check whether the constraint points are contained within the hull form
     # front_gap modifies x distance between the airfoil front and the x-component of the first bounding pt
     cons_x = constraints_x
     cons_y = constraints_y
     length_testing = x[0]
+    max_l = float(max_length)
+    max_w = float(max_width)
     front_gap = x[2]
     index = 0
     t = x[1]
-    if (length_testing or front_gap or t) < 0:
-        return -1
-    while index < bounds_number:
+    if (max_l > length_testing) and (length_testing > 1) and (length_testing > front_gap) and (front_gap > 0) and (max_w > t) and (t > 0) and ((t/length_testing)*100 < 100):
         height = airfoil_at_point(t, (cons_x[index] + front_gap), length_testing)
-        print(height, cons_y[index])
-        if height < cons_y[index]:
-            return height - cons_y[index]
-        index = index + 1
+        if height > cons_y[index]:
+            return [1]
+        else:
+            return [-1]
+    else:
+        return [-1]
+
+
+"""
     # length constraint
     max_l = float(max_length)
     length = float(x[0])
-    if max_l < length:
-        return max_l - length
+    if max_l > length:
+        return [1]
     if length < 1:
-        return length - 1
+        return [-1]
+
     # width constraint
     max_w = float(max_width)
     width = float(x[1])
     if max_w < width:
-        return max_w - width
-    if width < 0:
-        return width
-    return 1
-
+        return [-1]
+    if width < max_width:
+        return [1]
+"""
 
 """
 # Previous constraints, integrated into the one constraint function
@@ -87,18 +96,18 @@ def length_constraint(x):
     max_l = float(max_length)
     length = float(x[0])
     if max_l >= length > 1:
-        return 1
+        return [1]
     else:
-        return -1
+        return [-1]
 
 
 def width_constraint(x):
     max_w = float(max_width)
     width = float(x[1])
     if max_w >= width > 0:
-        return 1
+        return [1]
     else:
-        return -1
+        return [-1]
 """
 
 
@@ -139,7 +148,8 @@ def optimization_function(x):
     # implement coefficients in the future
     print("Testing optimization function")
     print(x)
-    optimum = airfoil_coefficients(x) + x[0] + x[1]
+    optimum = 20*airfoil_coefficients(x) + x[1] + 10*abs(((constraints_x[0] + x[2])/x[0]) - 0.3)
+    print(optimum)
     return optimum
 
 
@@ -176,14 +186,15 @@ print("Welcome to the CIVIL 556 Hull form optimization modeller! \n "
       "Please follow the instructions for data entry, and enjoy!")
 
 # MODEL PARAMETERS,
-constraints_x, constraints_y, max_length, max_width, bounds_number = intake_data()
+constraints_x, constraints_y, max_length, max_width, bounds_number = test_function()  # intake_data()
 
+print(constraints_x, constraints_y, max_length, max_width, bounds_number)
 # INITIALIZING SOLUTION VARIABLES
 # initialized length
 x0_length = 2
 
 # thickness at max point
-x0_thickness = 0.2
+x0_thickness = 0.4
 
 # front_space is the difference between the start of the airfoil and the first x component of bounding
 x0_front_space = 0.1
@@ -203,7 +214,7 @@ bnds = np.array([bound_horizontal, bound_vertical, bound_front])
 # MODEL CONSTRAINTS
 # con ensures bounding points are contained within the hull form, along with the max height/width constraints
 # returns 1 if satisfied, -1 if not satisfied
-con = {'type': 'ineq', 'fun': constraint_function}
+con3 = {'type': 'ineq', 'fun': constraint_function}
 
 # con2 ensures the maximum length of the submarine is shorter than the maximum length
 # con2 = {'type': 'ineq', 'fun': length_constraint}
@@ -214,8 +225,7 @@ con = {'type': 'ineq', 'fun': constraint_function}
 # array of constraints to be passed to the optimization function
 # cons = con1, con2, con3
 
-solution = minimize(optimization_function, x0, method='COBYLA', constraints=con,
-                    options={'rhobeg':0.1, 'maxiter':1000})
+solution = minimize(optimization_function, x0, method='COBYLA', constraints=con3, options={'rhobeg': 0.2})
 
 x = solution.x
 c_d = airfoil_coefficients(x)

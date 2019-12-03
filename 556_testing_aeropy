@@ -1,0 +1,12 @@
+
+from aeropy.xfoil_module import find_coefficients
+
+x = [1.2, .1, .1]
+
+airfoil = 'naca0012'
+
+airfoil_coeff = find_coefficients(airfoil=airfoil, alpha=0.1, Reynolds=500000, NACA=True, iteration=30.)
+
+print(airfoil_coeff['CD'])
+print(x)
+
