@@ -148,7 +148,7 @@ def optimization_function(x):
     # implement coefficients in the future
     print("Testing optimization function")
     print(x)
-    optimum = 20*airfoil_coefficients(x) + x[1] + 10*abs(((constraints_x[0] + x[2])/x[0]) - 0.3)
+    optimum = 20*airfoil_coefficients(x) + x[0] + 3*abs(((constraints_x[0] + x[2])/x[0]) - 0.3)
     print(optimum)
     return optimum
 
