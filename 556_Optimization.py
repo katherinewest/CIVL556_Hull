@@ -191,3 +191,5 @@ print(solution)
 print("The optimal length is: " + str(x[0]))
 print("The optimal hull width is: " + str(x[1]))
 print("The optimal standback distance from the front to the first constraint is: " + str(x[2]))
+
+print("Thank you for using the CIVL 556 Hull optimization model, good luck!")
