@@ -72,45 +72,6 @@ def constraint_function(x):
         return [-1]
 
 
-"""
-    # length constraint
-    max_l = float(max_length)
-    length = float(x[0])
-    if max_l > length:
-        return [1]
-    if length < 1:
-        return [-1]
-
-    # width constraint
-    max_w = float(max_width)
-    width = float(x[1])
-    if max_w < width:
-        return [-1]
-    if width < max_width:
-        return [1]
-"""
-
-"""
-# Previous constraints, integrated into the one constraint function
-def length_constraint(x):
-    max_l = float(max_length)
-    length = float(x[0])
-    if max_l >= length > 1:
-        return [1]
-    else:
-        return [-1]
-
-
-def width_constraint(x):
-    max_w = float(max_width)
-    width = float(x[1])
-    if max_w >= width > 0:
-        return [1]
-    else:
-        return [-1]
-"""
-
-
 def airfoil_coefficients(x):
     naca_number = int((x[1]/x[0])*100)
     if x[1] <= 0:
@@ -153,12 +114,13 @@ def optimization_function(x):
     return optimum
 
 
-"""
 def reporting(x):
     # make it print a pretty graph
     # also interested in calling the volume_revolution function
     # display 2D curve of optimum hull form with bounding points placed on it
-    print(x)
+    print("The volume of the optimal hull is: " + str(volume_revolution(x)))
+    y_gap = airfoil_at_point(x[1], (constraints_x[0] + x[2]), x[0]) - constraints_y[0]
+    print("The gap between hull and critical point is: " + str(y_gap))
     return
     
 
@@ -180,7 +142,7 @@ def volume_revolution(x):
     volume = integral*np.pi
     print("the volume of the hull is" + str(volume))
     return volume
-"""
+
 
 print("Welcome to the CIVIL 556 Hull form optimization modeller! \n "
       "Please follow the instructions for data entry, and enjoy!")
@@ -212,28 +174,20 @@ bound_front = (0.01, 1)
 bnds = np.array([bound_horizontal, bound_vertical, bound_front])
 
 # MODEL CONSTRAINTS
-# con ensures bounding points are contained within the hull form, along with the max height/width constraints
+# cons ensures bounding points are contained within the hull form, along with the max height/width constraints
 # returns 1 if satisfied, -1 if not satisfied
-con3 = {'type': 'ineq', 'fun': constraint_function}
+cons = {'type': 'ineq', 'fun': constraint_function}
 
-# con2 ensures the maximum length of the submarine is shorter than the maximum length
-# con2 = {'type': 'ineq', 'fun': length_constraint}
-
-# con3 ensures the maximum width of the submarine is smaller than the maximum width given
-# con1 = {'type': 'ineq', 'fun': width_constraint}
-
-# array of constraints to be passed to the optimization function
-# cons = con1, con2, con3
-
-solution = minimize(optimization_function, x0, method='COBYLA', constraints=con3, options={'rhobeg': 0.2})
+solution = minimize(optimization_function, x0, method='COBYLA', constraints=cons, options={'rhobeg': 0.2})
 
 x = solution.x
 c_d = airfoil_coefficients(x)
 
-print(c_d)
-
 print("Solution")
+print("The Calculated Drag Coefficient is:" + str(c_d))
+print(reporting(x))
+
 print(solution)
-print(x[0])
-print(x[1])
-print(x[2])
+print("The optimal length is: " + str(x[0]))
+print("The optimal hull width is: " + str(x[1]))
+print("The optimal standback distance from the front to the first constraint is: " + str(x[2]))
